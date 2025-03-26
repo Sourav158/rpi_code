@@ -245,7 +245,7 @@ def manual_mode():
                 bottom_man_light = data.get("bottom_man_light", False)
                 bottom_man_water = data.get("bottom_man_water", False)
                 print("3")
-                
+
                 if bottom_man_light == True:
                     print("4")
                     led_line_17.set_value(1)
@@ -293,15 +293,16 @@ timer_one_thread = threading.Thread(target=run_timer_bottom_light, daemon=True)
 timer_two_thread = threading.Thread(target=run_timer_bottom_water, daemon=True)
 timer_three_thread = threading.Thread(target=run_timer_top_light, daemon=True)
 timer_four_thread = threading.Thread(target=run_timer_top_water, daemon=True)
-timer_five_thread = threading.Thread(target=manual_mode, daemon=True)
+#timer_five_thread = threading.Thread(target=manual_mode, daemon=True)
 
 # Start both threads
 timer_one_thread.start()
 timer_two_thread.start()
 timer_three_thread.start()
 timer_four_thread.start()
-timer_five_thread.start()
+#timer_five_thread.start()
 
 # Keep the main program running
 while True:
-    time.sleep(1)
+    manual_mode()
+   # time.sleep(1)
