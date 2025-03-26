@@ -177,7 +177,7 @@ def run_timer_bottom_light():
 
                 while counter > 0:
                     print("Bottom Light: ON")
-                    #led_line_10.set_value(1)
+                    led_line_10.set_value(1)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     #ref.update({"bottom_light_tts_hrs": counter//3600})
@@ -188,7 +188,7 @@ def run_timer_bottom_light():
 
                 while counter > 0:
                     print("Bottom light: OFF")
-                    #led_line_10.set_value(0)
+                    led_line_10.set_value(0)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"bottom_light_enabled": False})
@@ -220,8 +220,8 @@ def run_timer_bottom_water():
 
                 while counter > 0:
                     print("Bottom Water: OFF")
-                    #led_line_27.set_value(0)
-                    #led_line_22.set_value(0)
+                    led_line_27.set_value(0)
+                    led_line_22.set_value(0)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"bottom_water_enabled": False})
@@ -230,8 +230,8 @@ def run_timer_bottom_water():
 
                 while counter > 0:
                     print("Bottom Water: ON")
-                    #led_line_27.set_value(1)
-                    #led_line_22.set_value(1)
+                    led_line_27.set_value(1)
+                    led_line_22.set_value(1)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"bottom_water_enabled": True})
@@ -263,7 +263,7 @@ def run_timer_top_light():
 
                 while counter > 0:
                     print("Top Light: ON")
-                    #led_line_9.set_value(1)
+                    led_line_9.set_value(1)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"top_light_enabled": True})
@@ -272,7 +272,7 @@ def run_timer_top_light():
 
                 while counter > 0:
                     print("Top light: OFF")
-                    #led_line_9.set_value(0)
+                    led_line_9.set_value(0)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"top_light_enabled": False})
@@ -304,8 +304,8 @@ def run_timer_top_water():
 
                 while counter > 0:
                     print("Top Water: OFF")
-                    #led_line_17.set_value(0)
-                    #led_line_22.set_value(0)
+                    led_line_17.set_value(0)
+                    led_line_22.set_value(0)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"top_water_enabled": False})
@@ -314,8 +314,8 @@ def run_timer_top_water():
 
                 while counter > 0:
                     print("Top Water: ON")
-                    #led_line_17.set_value(1)
-                    #led_line_22.set_value(1)
+                    led_line_17.set_value(1)
+                    led_line_22.set_value(1)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"top_water_enabled": True})
