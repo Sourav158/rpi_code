@@ -143,10 +143,10 @@ def fetch_flags():
             bottom_water_amount = data.get("bottom_water_amount", 0)
             top_water_amount = data.get("top_water_amount", 0)
             print("\nUpdated Firebase Flags:")
-            for key, value in data.items():
-                print(f"{key}: {value}")
-        else:
-            print("No data found in flags_test")
+            #for key, value in data.items():
+            #    print(f"{key}: {value}")
+        #else:
+           # print("No data found in flags_test")
         #led_line_9.set_value(1)
         time.sleep(3)  # Wait 3 seconds before fetching 
         #led_line_9.set_value(0)
@@ -176,19 +176,19 @@ def run_timer_bottom_light():
                     ref.update({"bottom_mode_light_edit": False})
 
                 while counter > 0:
-                    #print("Bottom Light: ON")
-                    led_line_10.set_value(1)
+                    print("Bottom Light: ON")
+                    #led_line_10.set_value(1)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
-                    ref.update({"bottom_light_tts_hrs": counter//3600})
-                    ref.update({"bottom_light_tts_mins": counter % 3600})
+                    #ref.update({"bottom_light_tts_hrs": counter//3600})
+                    #ref.update({"bottom_light_tts_mins": counter % 3600})
                     ref.update({"bottom_light_enabled": True})
                     #print(f"Timer One Counter: {counter} seconds")
                 counter = total_off
 
                 while counter > 0:
-                    #print("Bottom light: OFF")
-                    led_line_10.set_value(0)
+                    print("Bottom light: OFF")
+                    #led_line_10.set_value(0)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"bottom_light_enabled": False})
@@ -219,8 +219,9 @@ def run_timer_bottom_water():
                     ref.update({"bottom_mode_water_edit": False})
 
                 while counter > 0:
-                    led_line_27.set_value(0)
-                    led_line_22.set_value(0)
+                    print("Bottom Water: OFF")
+                    #led_line_27.set_value(0)
+                    #led_line_22.set_value(0)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"bottom_water_enabled": False})
@@ -228,8 +229,9 @@ def run_timer_bottom_water():
                 counter = total_on
 
                 while counter > 0:
-                    led_line_27.set_value(1)
-                    led_line_22.set_value(1)
+                    print("Bottom Water: ON")
+                    #led_line_27.set_value(1)
+                    #led_line_22.set_value(1)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"bottom_water_enabled": True})
@@ -260,8 +262,8 @@ def run_timer_top_light():
                     ref.update({"top_mode_light_edit": False})
 
                 while counter > 0:
-                    #print("Top Light: ON")
-                    led_line_9.set_value(1)
+                    print("Top Light: ON")
+                    #led_line_9.set_value(1)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"top_light_enabled": True})
@@ -269,8 +271,8 @@ def run_timer_top_light():
                 counter = total_off
 
                 while counter > 0:
-                    #print("Top light: OFF")
-                    led_line_9.set_value(0)
+                    print("Top light: OFF")
+                    #led_line_9.set_value(0)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"top_light_enabled": False})
@@ -301,8 +303,9 @@ def run_timer_top_water():
                     ref.update({"top_mode_water_edit": False})
 
                 while counter > 0:
-                    led_line_17.set_value(0)
-                    led_line_22.set_value(0)
+                    print("Top Water: OFF")
+                    #led_line_17.set_value(0)
+                    #led_line_22.set_value(0)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"top_water_enabled": False})
@@ -310,14 +313,16 @@ def run_timer_top_water():
                 counter = total_on
 
                 while counter > 0:
-                    led_line_17.set_value(1)
-                    led_line_22.set_value(1)
+                    print("Top Water: ON")
+                    #led_line_17.set_value(1)
+                    #led_line_22.set_value(1)
                     time.sleep(5)  # Wait for 5 seconds
                     counter -= 5    # Increment counter by 5
                     ref.update({"top_water_enabled": True})
                     #print(f"Timer One Counter: {counter} seconds")
                 counter = total_off
 
+'''
 def manual_mode():
     global app_open, level_under_test, bottom_initialized, bottom_mode, bottom_man_light, bottom_man_water
     global bottom_mode_light_edit, bottom_mode_water_edit, bottom_light_ref_off_hrs, bottom_light_ref_on_hrs, bottom_light_ref_off_mins
@@ -366,6 +371,7 @@ def manual_mode():
                     led_line_9.set_value(0)
     
     time.sleep(2)
+'''
             
 # Start fetch_flags() in a separate thread
 firebase_thread = threading.Thread(target=fetch_flags, daemon=True)
@@ -376,14 +382,14 @@ timer_one_thread = threading.Thread(target=run_timer_bottom_light, daemon=True)
 timer_two_thread = threading.Thread(target=run_timer_bottom_water, daemon=True)
 timer_three_thread = threading.Thread(target=run_timer_top_light, daemon=True)
 timer_four_thread = threading.Thread(target=run_timer_top_water, daemon=True)
-timer_five_thread = threading.Thread(target=manual_mode, daemon=True)
+#timer_five_thread = threading.Thread(target=manual_mode, daemon=True)
 
 # Start both threads
 timer_one_thread.start()
 timer_two_thread.start()
 timer_three_thread.start()
 timer_four_thread.start()
-timer_five_thread.start()
+#timer_five_thread.start()
 
 # Keep the main program running
 while True:
