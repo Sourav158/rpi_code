@@ -231,20 +231,21 @@ def run_timer_top_water():
 def manual_mode():
    
     level_under_test = data.get("level_under_test", 0)
-    print("0")
+    print(level_under_test)
 
     if level_under_test == 1:
         bottom_initialized = data.get("bottom_initialized", False)
-        print("1")
+        print(bottom_initialized)
 
         if bottom_initialized == True:
             bottom_mode = data.get("bottom_mode", "manual")
-            print("3")
+            print(bottom_mode)
 
             if bottom_mode == "manual":
                 bottom_man_light = data.get("bottom_man_light", False)
                 bottom_man_water = data.get("bottom_man_water", False)
-                print("4")
+                print(bottom_man_light)
+                print(bottom_man_water)
 
                 if bottom_man_light == True:
                     print("5")
