@@ -48,11 +48,11 @@ firebase_admin.initialize_app(cred, {
 
 # Reference to the database location
 ref = db.reference("flags_test")
-data = ref.get()
+
 
 # Function to track time with ON/OFF cycles for Timer One
 def run_timer_bottom_light():
-
+    data = ref.get()
     total_on = 0
     total_off = 0
 
@@ -99,7 +99,7 @@ def run_timer_bottom_light():
                 counter = total_on
 
 def run_timer_bottom_water():
-    
+    data = ref.get()
     total_on = 0
     total_off = 0
 
@@ -143,7 +143,7 @@ def run_timer_bottom_water():
                 counter = total_off
 
 def run_timer_top_light():
-   
+    data = ref.get()
     total_on = 0
     total_off = 0
 
@@ -185,7 +185,7 @@ def run_timer_top_light():
                 counter = total_on
 
 def run_timer_top_water():
-    
+    data = ref.get()
     total_on = 0
     total_off = 0
     while True:
@@ -229,7 +229,7 @@ def run_timer_top_water():
 
 
 def manual_mode():
-   
+    data = ref.get()
     level_under_test = data.get("level_under_test", 0)
     print(level_under_test)
 
