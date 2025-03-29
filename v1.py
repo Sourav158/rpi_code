@@ -52,12 +52,11 @@ ref = db.reference("flags_test")
 
 # Function to track time with ON/OFF cycles for Timer One
 def run_timer_bottom_light():
-    data = ref.get()
     total_on = 0
     total_off = 0
 
     while True:
-
+        data = ref.get()
         bottom_initialized = data.get("bottom_initialized", False)
         bottom_mode = data.get("bottom_mode", "manual")
 
@@ -99,11 +98,11 @@ def run_timer_bottom_light():
                 counter = total_on
 
 def run_timer_bottom_water():
-    data = ref.get()
     total_on = 0
     total_off = 0
 
     while True:
+        data = ref.get()
         bottom_initialized = data.get("bottom_initialized", False)
         bottom_mode = data.get("bottom_mode", "manual")
 
@@ -143,11 +142,11 @@ def run_timer_bottom_water():
                 counter = total_off
 
 def run_timer_top_light():
-    data = ref.get()
     total_on = 0
     total_off = 0
 
     while True:
+        data = ref.get()
         top_initialized = data.get("top_initialized", False)
         top_mode = data.get("top_mode", "manual")
 
@@ -185,10 +184,11 @@ def run_timer_top_light():
                 counter = total_on
 
 def run_timer_top_water():
-    data = ref.get()
+
     total_on = 0
     total_off = 0
     while True:
+        data = ref.get()
         top_initialized = data.get("top_initialized", False)
         top_mode = data.get("top_mode", "manual")
 
@@ -244,6 +244,7 @@ def manual_mode():
             if bottom_mode == "manual":
                 bottom_man_light = data.get("bottom_man_light", False)
                 bottom_man_water = data.get("bottom_man_water", False)
+
                 print(bottom_man_light)
                 print(bottom_man_water)
 
@@ -285,6 +286,9 @@ def manual_mode():
     
     time.sleep(2)
 
+#def adaptive_mode():
+    
+
             
 # Start fetch_flags() in a separate thread
 #firebase_thread = threading.Thread(target=fetch_flags, daemon=True)
@@ -307,4 +311,4 @@ timer_five_thread.start()
 # Keep the main program running
 while True:
    #manual_mode()
-   # time.sleep(1)
+   time.sleep(1)
