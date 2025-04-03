@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, db
 
 # Path to your Firebase service account key JSON
-cred_path = "/path/to/your/serviceAccountKey.json"
+cred_path = "/home/pi/final_testing/fire_key.json"
 
 # Initialize Firebase app
 cred = credentials.Certificate(cred_path)
