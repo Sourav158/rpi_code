@@ -26,11 +26,12 @@ led_line_10.request(consumer="LED_10", type=gpiod.LINE_REQ_DIR_OUT)
 led_line_9.request(consumer="LED_9", type=gpiod.LINE_REQ_DIR_OUT)
 
 # Initialize Firebase
-cred = credentials.Certificate("/home/pi/project_code/firebase_key.json")
+cred = credentials.Certificate("/home/pi/final_testing/fire_key.json")
+cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred, {
-    'databaseURL': 'https://simple-sprouts-database-default-rtdb.firebaseio.com/'
+    'databaseURL': 'https://finaltesting-bcb9e-default-rtdb.firebaseio.com/'
 })
-ref = db.reference("flags_test")
+ref = db.reference("Flags")
 
 # Dictionary holding state for each component
 components = {
