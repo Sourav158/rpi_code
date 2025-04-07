@@ -1,0 +1,17 @@
+bottom light: ON: 20, OFF: 10
+top light:    ON: 10, OFF: 10
+
+bottom water: ON: 5, OFF: 20
+top water:    ON: 10, OFF: 25
+
+gpio 10
+
+adp_bottom_light_off_hrs
+adp_bottom_light_off_min
+adp_bottom_light_on_hrs
+adp_bottom_light_on_mins
+adp_top_light_off_hrs
+adp_top_light_off_mins
+adp_top_light_on_hrs
+adp_top_light_on_mins
+
