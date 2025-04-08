@@ -42,18 +42,18 @@ cred = credentials.Certificate("/home/pi/final_testing/sensor_firebase_key.json"
 firebase_admin.initialize_app(cred, {
     'databaseURL': 'https://simple-sprouts-database-default-rtdb.firebaseio.com/'
 })
-# "flags_test" holds mode and schedule info, as well as the TTS/TTW values.
+# "flags_test" holds mode and schedule info plus the TTS/TTW values.
 ref = db.reference("flags_test")
-# Create separate reference for sensor readings
+# Separate reference for sensor readings.
 sensor_readings_ref = db.reference("sensor_readings/latest")
 
 # --- Initialize Ultrasonic Sensor ---
-# (Using trigger on GPIO 23 and echo on GPIO 27; adjust as needed)
+# (Trigger on GPIO 23, echo on GPIO 27; adjust as needed)
 ultrasonic_sensor = DistanceSensor(echo=27, trigger=23, max_distance=4)
 next_ultrasonic_sample = time.monotonic()
 
 # --- Component State Dictionary ---
-# For water, gpio is a tuple: (valve, pump). Valve control is independent.
+# For water, gpio is a tuple: (valve, pump) – valve control is independent.
 components = {
     "bottom_light": {
         "gpio": led_line_17,
@@ -78,7 +78,7 @@ components = {
     "bottom_water": {
         "gpio": (led_line_22, led_line_9),  # (valve, pump)
         "state": False,
-        "on_duration": 0,      # water "amount" (on) remains as is
+        "on_duration": 0,   # water "amount" (on) stays as seconds
         "off_duration": 0,
         "next_toggle": time.monotonic(),
         "init_key": "bottom_initialized",
@@ -88,7 +88,7 @@ components = {
     "top_water": {
         "gpio": (led_line_10, led_line_9),  # (valve, pump)
         "state": False,
-        "on_duration": 0,      # water "amount" (on) remains as is
+        "on_duration": 0,   # water "amount" (on) stays as seconds
         "off_duration": 0,
         "next_toggle": time.monotonic(),
         "init_key": "top_initialized",
@@ -104,13 +104,13 @@ heater_state = False
 
 def update_tts_firebase(comp_name, current_time):
     """
-    For lights:
-    Computes and pushes the 'time till switch' (TTS) values to Firebase.
-    The values are scaled back into the original units.
+    For lights (TTS):
+    Calculate the remaining time until the next switch and update Firebase.
+    The raw input hours and minutes are used to compute the original schedule,
+    and the fraction of simulation time remaining is used to scale these back.
     """
     comp = components[comp_name]
     remaining = max(0, comp["next_toggle"] - current_time)
-    # Use the appropriate schedule based on current state:
     if comp["state"]:
         total_sim = comp.get("total_on_duration", 1) or 1
         raw_hr = comp.get("raw_on_hrs", 0)
@@ -120,7 +120,7 @@ def update_tts_firebase(comp_name, current_time):
         raw_hr = comp.get("raw_off_hrs", 0)
         raw_min = comp.get("raw_off_mins", 0)
     fraction = remaining / total_sim if total_sim > 0 else 0
-    # Convert original input (hours and minutes) to total minutes:
+    # Original schedule in minutes:
     original_total_minutes = raw_hr * 60 + raw_min
     remaining_minutes = original_total_minutes * fraction
     display_hrs = int(remaining_minutes // 60)
@@ -132,9 +132,10 @@ def update_tts_firebase(comp_name, current_time):
 
 def update_ttw_firebase(comp_name, current_time):
     """
-    For water scheduling:
-    Computes and pushes the 'time till water' (TTW) values to Firebase.
-    Each raw value is scaled proportionally based on the simulation time remaining.
+    For water (TTW):
+    Calculate the remaining off time until the next water cycle and update Firebase.
+    The raw inputs for days, hours, and minutes are used and scaled using the
+    fraction of simulation off time that remains.
     """
     comp = components[comp_name]
     remaining = max(0, comp["next_toggle"] - current_time)
@@ -143,9 +144,9 @@ def update_ttw_firebase(comp_name, current_time):
     raw_days = comp.get("raw_ref_days", 0)
     raw_hrs  = comp.get("raw_ref_hrs", 0)
     raw_min  = comp.get("raw_ref_mins", 0)
-    display_days = int(round(raw_days * fraction))
-    display_hrs  = int(round(raw_hrs * fraction))
-    display_mins = int(round(raw_min * fraction))
+    display_days = int(raw_days * fraction)
+    display_hrs  = int(raw_hrs * fraction)
+    display_mins = int(raw_min * fraction)
     if comp_name == "bottom_water":
         ref.update({"bottom_water_ttw_days": display_days, "bottom_water_ttw_hrs": display_hrs, "bottom_water_ttw_min": display_mins})
     elif comp_name == "top_water":
@@ -156,38 +157,35 @@ def update_ttw_firebase(comp_name, current_time):
 def update_schedule(comp_name, data, current_time):
     """
     Update schedule for 'scheduling' mode.
-    For lights, convert the on/off times using:
-      1 hour = 2 seconds and 1 minute = 1 second.
-    For water off time, convert using:
-      1 day = 4 seconds, 1 hour = 2 seconds, 1 minute = 1 second.
-    Also store the raw input values for later proportional countdown display.
+    For lights: use 1 hour = 3600 seconds and 1 minute = 60 seconds.
+    For water off time: use 1 day = 86400 seconds, 1 hour = 3600 seconds, and 1 minute = 60 seconds.
+    Raw input values are stored for use when displaying countdowns.
     """
     comp = components[comp_name]
     if comp_name in ["bottom_light", "top_light"]:
-        # Store raw input for display
+        # Store raw input values.
         comp["raw_on_hrs"]  = data.get(f"{comp_name}_ref_on_hrs", 0)
         comp["raw_on_mins"] = data.get(f"{comp_name}_ref_on_mins", 0)
         comp["raw_off_hrs"]  = data.get(f"{comp_name}_ref_off_hrs", 0)
         comp["raw_off_mins"] = data.get(f"{comp_name}_ref_off_mins", 0)
-        # Compute simulation durations
-        total_on  = comp["raw_on_hrs"]  * 2 + comp["raw_on_mins"]  * 1
-        total_off = comp["raw_off_hrs"] * 2 + comp["raw_off_mins"] * 1
+        # Compute the durations in seconds.
+        total_on  = comp["raw_on_hrs"] * 3600 + comp["raw_on_mins"] * 60
+        total_off = comp["raw_off_hrs"] * 3600 + comp["raw_off_mins"] * 60
         comp["on_duration"] = total_on
         comp["off_duration"] = total_off
         comp["total_on_duration"] = total_on
         comp["total_off_duration"] = total_off
     elif comp_name in ["bottom_water", "top_water"]:
-        # For water, the "amount" (on time) is used as is.
+        # For water, the "amount" (on time) is taken as seconds.
         amount = data.get(f"{comp_name}_amount", 0)
-        # Store raw water off inputs
         comp["raw_ref_days"] = data.get(f"{comp_name}_ref_days", 0)
         comp["raw_ref_hrs"]  = data.get(f"{comp_name}_ref_hrs", 0)
         comp["raw_ref_mins"] = data.get(f"{comp_name}_ref_mins", 0)
-        total_off = comp["raw_ref_days"] * 4 + comp["raw_ref_hrs"] * 2 + comp["raw_ref_mins"] * 1
-        comp["on_duration"] = amount  # remains as provided
+        total_off = comp["raw_ref_days"] * 86400 + comp["raw_ref_hrs"] * 3600 + comp["raw_ref_mins"] * 60
+        comp["on_duration"] = amount   # water "on" time remains as seconds.
         comp["off_duration"] = total_off
         comp["total_off_duration"] = total_off
-    # Update next_toggle if it’s already passed
+    # If the scheduled time has already passed, update next_toggle accordingly.
     if comp["next_toggle"] < current_time:
         if comp["state"]:
             comp["next_toggle"] = current_time + comp["on_duration"]
@@ -197,7 +195,7 @@ def update_schedule(comp_name, data, current_time):
 def update_adaptive_schedule(comp_name, data, current_time):
     """
     Update schedule for adaptive mode (lights only).
-    Use the adaptive keys; the conversion math is the same.
+    The conversion math is the same as for scheduling mode.
     """
     comp = components[comp_name]
     if comp_name == "bottom_light":
@@ -210,8 +208,8 @@ def update_adaptive_schedule(comp_name, data, current_time):
         comp["raw_on_mins"] = data.get("adp_top_light_on_mins", 0)
         comp["raw_off_hrs"]  = data.get("adp_top_light_off_hrs", 0)
         comp["raw_off_mins"] = data.get("adp_top_light_off_mins", 0)
-    total_on  = comp["raw_on_hrs"]  * 2 + comp["raw_on_mins"]  * 1
-    total_off = comp["raw_off_hrs"] * 2 + comp["raw_off_mins"] * 1
+    total_on  = comp["raw_on_hrs"] * 3600 + comp["raw_on_mins"] * 60
+    total_off = comp["raw_off_hrs"] * 3600 + comp["raw_off_mins"] * 60
     comp["on_duration"] = total_on
     comp["off_duration"] = total_off
     comp["total_on_duration"] = total_on
@@ -225,7 +223,8 @@ def update_adaptive_schedule(comp_name, data, current_time):
 def set_valve(comp, value):
     """
     Set the GPIO output for the valve only.
-    For water components, update the first element (valve) only.
+    For water components (whose gpio is a tuple),
+    only the valve (first element) is set.
     """
     if isinstance(comp["gpio"], tuple):
         comp["gpio"][0].set_value(1 if value else 0)
@@ -235,9 +234,9 @@ def set_valve(comp, value):
 def adaptive_water_logic(comp_name, sensor_value, current_time):
     """
     For adaptive water mode:
-      - If sensor_value is below 450, trigger watering (set state True and water for 5 seconds).
-      - If already watering and sensor_value remains below 680, extend watering by 5 seconds.
-      - Only when sensor_value is >=680, stop watering.
+      - If sensor_value < 450, start watering (set state True for 5 seconds).
+      - If already watering and sensor_value remains below 680, extend watering.
+      - Otherwise, stop watering.
     """
     comp = components[comp_name]
     if "watering_until" not in comp:
@@ -270,8 +269,8 @@ def handle_manual_mode(data):
 
 def update_pump(data):
     """
-    Update pump (led_line_9) state.
-    Pump is ON if either water component (scheduling, adaptive, or manual) indicates watering.
+    Update the pump (via led_line_9).
+    The pump is ON if either water component (scheduling, adaptive, or manual) indicates watering.
     """
     bottom_mode = data.get("bottom_mode", "manual")
     if bottom_mode in ["scheduling", "adaptive"]:
@@ -288,11 +287,10 @@ def update_pump(data):
 
 def update_heater(data, sensors):
     """
-    Update heater (controlled by heater_line, GPIO 11).
-    Read current temperature from sensors ("temp").
-    From Flags, read "target_temp".
-    If current temp is less than (target_temp - 5) and heater is off, turn heater on.
-    If heater is on and current temp is >= target_temp, turn heater off.
+    Update the heater (controlled by heater_line).
+    Use the current temperature from sensors and the target temperature from flags.
+    If current temp < (target_temp - 5) and heater is off, turn it on.
+    If heater is on and current temp >= target_temp, turn it off.
     """
     global heater_state
     current_temp = sensors.get("temp", 20)
@@ -303,7 +301,7 @@ def update_heater(data, sensors):
         heater_state = False
     heater_line.set_value(1 if heater_state else 0)
 
-# Initialize heater state
+# Initialize heater state.
 heater_state = False
 
 # --- Main Event Loop ---
@@ -312,12 +310,11 @@ while True:
     
     # --- Ultrasonic Sensor Sampling (Every 5 Seconds) ---
     if current_time >= next_ultrasonic_sample:
-        # Measure distance (convert meters to centimeters)
-        distance_cm = ultrasonic_sensor.distance * 100
+        distance_cm = ultrasonic_sensor.distance * 100  # convert meters to centimeters
         sensor_readings_ref.update({"ultrasonic": distance_cm})
         next_ultrasonic_sample = current_time + 5
 
-    data = ref.get()  # Fetch latest flags values
+    data = ref.get()  # Get the latest flags values
 
     # --- Process Bottom Light ---
     comp = components["bottom_light"]
