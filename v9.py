@@ -78,7 +78,7 @@ components = {
     "bottom_water": {
         "gpio": (led_line_22, led_line_9),  # (valve, pump)
         "state": False,
-        "on_duration": 0,
+        "on_duration": 0,      # water "amount" (on) remains as is
         "off_duration": 0,
         "next_toggle": time.monotonic(),
         "init_key": "bottom_initialized",
@@ -88,7 +88,7 @@ components = {
     "top_water": {
         "gpio": (led_line_10, led_line_9),  # (valve, pump)
         "state": False,
-        "on_duration": 0,
+        "on_duration": 0,      # water "amount" (on) remains as is
         "off_duration": 0,
         "next_toggle": time.monotonic(),
         "init_key": "top_initialized",
@@ -104,50 +104,90 @@ heater_state = False
 
 def update_tts_firebase(comp_name, current_time):
     """
-    Calculates and pushes the 'time till switch' (TTS) values for lights
-    to Firebase. The values are pushed as hours and minutes.
+    For lights:
+    Computes and pushes the 'time till switch' (TTS) values to Firebase.
+    The values are scaled back into the original units.
     """
     comp = components[comp_name]
     remaining = max(0, comp["next_toggle"] - current_time)
-    hrs = int(remaining // 3600)
-    mins = int((remaining % 3600) // 60)
+    # Use the appropriate schedule based on current state:
+    if comp["state"]:
+        total_sim = comp.get("total_on_duration", 1) or 1
+        raw_hr = comp.get("raw_on_hrs", 0)
+        raw_min = comp.get("raw_on_mins", 0)
+    else:
+        total_sim = comp.get("total_off_duration", 1) or 1
+        raw_hr = comp.get("raw_off_hrs", 0)
+        raw_min = comp.get("raw_off_mins", 0)
+    fraction = remaining / total_sim if total_sim > 0 else 0
+    # Convert original input (hours and minutes) to total minutes:
+    original_total_minutes = raw_hr * 60 + raw_min
+    remaining_minutes = original_total_minutes * fraction
+    display_hrs = int(remaining_minutes // 60)
+    display_mins = int(remaining_minutes % 60)
     if comp_name == "bottom_light":
-        ref.update({"bottom_light_tts_hrs": hrs, "bottom_light_tts_mins": mins})
+        ref.update({"bottom_light_tts_hrs": display_hrs, "bottom_light_tts_mins": display_mins})
     elif comp_name == "top_light":
-        ref.update({"top_light_tts_hrs": hrs, "top_light_tts_mins": mins})
+        ref.update({"top_light_tts_hrs": display_hrs, "top_light_tts_mins": display_mins})
 
 def update_ttw_firebase(comp_name, current_time):
     """
-    Calculates and pushes the 'time till water' (TTW) values for water schedules
-    to Firebase. The values are pushed as days, hours, and minutes.
+    For water scheduling:
+    Computes and pushes the 'time till water' (TTW) values to Firebase.
+    Each raw value is scaled proportionally based on the simulation time remaining.
     """
     comp = components[comp_name]
     remaining = max(0, comp["next_toggle"] - current_time)
-    days = int(remaining // (24 * 3600))
-    hours = int((remaining % (24 * 3600)) // 3600)
-    minutes = int((remaining % 3600) // 60)
+    total_sim = comp.get("total_off_duration", 1) or 1
+    fraction = remaining / total_sim if total_sim > 0 else 0
+    raw_days = comp.get("raw_ref_days", 0)
+    raw_hrs  = comp.get("raw_ref_hrs", 0)
+    raw_min  = comp.get("raw_ref_mins", 0)
+    display_days = int(round(raw_days * fraction))
+    display_hrs  = int(round(raw_hrs * fraction))
+    display_mins = int(round(raw_min * fraction))
     if comp_name == "bottom_water":
-        ref.update({"bottom_water_ttw_days": days, "bottom_water_ttw_hrs": hours, "bottom_water_ttw_min": minutes})
+        ref.update({"bottom_water_ttw_days": display_days, "bottom_water_ttw_hrs": display_hrs, "bottom_water_ttw_min": display_mins})
     elif comp_name == "top_water":
-        ref.update({"top_water_ttw_days": days, "top_water_ttw_hrs": hours, "top_water_ttw_min": minutes})
+        ref.update({"top_water_ttw_days": display_days, "top_water_ttw_hrs": display_hrs, "top_water_ttw_min": display_mins})
 
-# --- Schedule Update Functions (same as before) ---
+# --- Schedule Update Functions ---
 
 def update_schedule(comp_name, data, current_time):
-    """Update schedule for 'scheduling' mode without resetting next_toggle if it’s in the future."""
+    """
+    Update schedule for 'scheduling' mode.
+    For lights, convert the on/off times using:
+      1 hour = 2 seconds and 1 minute = 1 second.
+    For water off time, convert using:
+      1 day = 4 seconds, 1 hour = 2 seconds, 1 minute = 1 second.
+    Also store the raw input values for later proportional countdown display.
+    """
     comp = components[comp_name]
     if comp_name in ["bottom_light", "top_light"]:
-        total_on = data.get(f"{comp_name}_ref_on_hrs", 0) * 1 + data.get(f"{comp_name}_ref_on_mins", 0) * 1
-        total_off = data.get(f"{comp_name}_ref_off_hrs", 0) * 1 + data.get(f"{comp_name}_ref_off_mins", 0) * 1
+        # Store raw input for display
+        comp["raw_on_hrs"]  = data.get(f"{comp_name}_ref_on_hrs", 0)
+        comp["raw_on_mins"] = data.get(f"{comp_name}_ref_on_mins", 0)
+        comp["raw_off_hrs"]  = data.get(f"{comp_name}_ref_off_hrs", 0)
+        comp["raw_off_mins"] = data.get(f"{comp_name}_ref_off_mins", 0)
+        # Compute simulation durations
+        total_on  = comp["raw_on_hrs"]  * 2 + comp["raw_on_mins"]  * 1
+        total_off = comp["raw_off_hrs"] * 2 + comp["raw_off_mins"] * 1
         comp["on_duration"] = total_on
         comp["off_duration"] = total_off
+        comp["total_on_duration"] = total_on
+        comp["total_off_duration"] = total_off
     elif comp_name in ["bottom_water", "top_water"]:
+        # For water, the "amount" (on time) is used as is.
         amount = data.get(f"{comp_name}_amount", 0)
-        total_off = (data.get(f"{comp_name}_ref_days", 0) * 1 +
-                     data.get(f"{comp_name}_ref_hrs", 0) * 1 +
-                     data.get(f"{comp_name}_ref_mins", 0) * 1)
-        comp["on_duration"] = amount
+        # Store raw water off inputs
+        comp["raw_ref_days"] = data.get(f"{comp_name}_ref_days", 0)
+        comp["raw_ref_hrs"]  = data.get(f"{comp_name}_ref_hrs", 0)
+        comp["raw_ref_mins"] = data.get(f"{comp_name}_ref_mins", 0)
+        total_off = comp["raw_ref_days"] * 4 + comp["raw_ref_hrs"] * 2 + comp["raw_ref_mins"] * 1
+        comp["on_duration"] = amount  # remains as provided
         comp["off_duration"] = total_off
+        comp["total_off_duration"] = total_off
+    # Update next_toggle if it’s already passed
     if comp["next_toggle"] < current_time:
         if comp["state"]:
             comp["next_toggle"] = current_time + comp["on_duration"]
@@ -156,18 +196,26 @@ def update_schedule(comp_name, data, current_time):
 
 def update_adaptive_schedule(comp_name, data, current_time):
     """
-    Update schedule for light components in 'adaptive' mode.
-    Convert adaptive hours to seconds.
+    Update schedule for adaptive mode (lights only).
+    Use the adaptive keys; the conversion math is the same.
     """
     comp = components[comp_name]
     if comp_name == "bottom_light":
-        total_on = data.get("adp_bottom_light_on_hrs", 0) * 1
-        total_off = data.get("adp_bottom_light_off_hrs", 0) * 1
+        comp["raw_on_hrs"]  = data.get("adp_bottom_light_on_hrs", 0)
+        comp["raw_on_mins"] = data.get("adp_bottom_light_on_mins", 0)
+        comp["raw_off_hrs"]  = data.get("adp_bottom_light_off_hrs", 0)
+        comp["raw_off_mins"] = data.get("adp_bottom_light_off_mins", 0)
     elif comp_name == "top_light":
-        total_on = data.get("adp_top_light_on_hrs", 0) * 1
-        total_off = data.get("adp_top_light_off_hrs", 0) * 1
+        comp["raw_on_hrs"]  = data.get("adp_top_light_on_hrs", 0)
+        comp["raw_on_mins"] = data.get("adp_top_light_on_mins", 0)
+        comp["raw_off_hrs"]  = data.get("adp_top_light_off_hrs", 0)
+        comp["raw_off_mins"] = data.get("adp_top_light_off_mins", 0)
+    total_on  = comp["raw_on_hrs"]  * 2 + comp["raw_on_mins"]  * 1
+    total_off = comp["raw_off_hrs"] * 2 + comp["raw_off_mins"] * 1
     comp["on_duration"] = total_on
     comp["off_duration"] = total_off
+    comp["total_on_duration"] = total_on
+    comp["total_off_duration"] = total_off
     if comp["next_toggle"] < current_time:
         if comp["state"]:
             comp["next_toggle"] = current_time + comp["on_duration"]
